@@ -6,6 +6,7 @@ import br.com.treinarecife.acervo.literario.api.mapper.CategoriaMapper;
 import br.com.treinarecife.acervo.literario.api.repository.CategoriaRepository;
 import br.com.treinarecife.acervo.literario.api.request.CategoriaRequestDTO;
 import br.com.treinarecife.acervo.literario.api.response.CategoriaResponseDTO;
+import jakarta.validation.Valid;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -25,9 +26,11 @@ public class CategoriaService {
 
     // Listar todas as categorias
     @Transactional(readOnly = true)
-    public List<Categoria> listarTodas() {
+    public List<CategoriaResponseDTO> listarTodas() {
 
-        return categoriaRepository.findAll();
+        return categoriaRepository.findAll().stream()
+            .map(CategoriaMapper::toResponse)
+            .toList();
     }
 
     // Buscar categoria pelo ID
@@ -44,11 +47,11 @@ public class CategoriaService {
 
     // Cadastrar categoria
     @Transactional
-    public Categoria salvar(Categoria categoria) {
+    public CategoriaResponseDTO salvar(CategoriaRequestDTO dados) {
 
         // Validar nome da categoria
-        if (categoria.getNome() == null ||
-                categoria.getNome().isBlank()) {
+        if (dados.nome() == null ||
+                dados.nome().isBlank()) {
 
             throw new ResponseStatusException(
                     HttpStatus.BAD_REQUEST,
@@ -57,7 +60,7 @@ public class CategoriaService {
         }
 
         // Verificar se já existe uma categoria com o mesmo nome
-        if (categoriaRepository.findByNome(categoria.getNome()).isPresent()) {
+        if (categoriaRepository.findByNome(dados.nome()).isPresent()) {
 
             throw new ResponseStatusException(
                     HttpStatus.CONFLICT,
@@ -65,7 +68,11 @@ public class CategoriaService {
             );
         }
 
-        return categoriaRepository.save(categoria);
+        Categoria categoria = CategoriaMapper.toEntity(dados);
+
+        Categoria categoriaSalva = categoriaRepository.save(categoria);
+
+        return CategoriaMapper.toResponse(categoriaSalva);
     }
 
     // Atualizar categoria
